@@ -120,6 +120,12 @@ func joinChunks(w http.ResponseWriter, r *http.Request) {
 	// Calculate the MD5 hash of the joined content
 	md5Sum := md5Sum(joinedContent)
 
+	// Calculate the size of the joined content
+	size := len(joinedContent)
+
+	// Define the MIME type based on your requirements (e.g., application/octet-stream)
+	mimeType := "application/octet-stream"
+
 	// Write the joined content to a new file
 	outputObject := bucket.Object(requestData.Hash)
 	wc := outputObject.NewWriter(ctx)
@@ -129,10 +135,11 @@ func joinChunks(w http.ResponseWriter, r *http.Request) {
 	}
 	wc.Close()
 
-	// Create a .meta file with the MD5 hash
+	// Create a .meta file with the MD5 hash, size, and MIME type
+	metaData := fmt.Sprintf(`{"hash":"%s","size":%d,"mime":"%s"}`, md5Sum, size, mimeType)
 	metaObject := bucket.Object(fmt.Sprintf("%s.meta", requestData.Hash))
 	wc = metaObject.NewWriter(ctx)
-	if _, err := wc.Write([]byte(fmt.Sprintf(`{"hash":"%s"}`, md5Sum))); err != nil {
+	if _, err := wc.Write([]byte(metaData)); err != nil {
 		sendError(w, "Failed to write .meta content")
 		return
 	}
